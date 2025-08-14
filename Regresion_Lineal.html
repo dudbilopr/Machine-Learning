@@ -346,7 +346,7 @@
                 slide.classList.toggle('active', i === index);
             });
             
-            prevBtn.disabled = index <= 1;
+            prevBtn.disabled = index <= 0;
             nextBtn.disabled = index === slides.length - 1;
             
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, slides[index]]);
@@ -367,7 +367,7 @@
         });
 
         prevBtn.addEventListener('click', () => {
-            if (currentSlide > 1) {
+            if (currentSlide > 0) {
                 currentSlide--;
                 showSlide(currentSlide);
             }
