@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicación Interactiva de Regresión Lineal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [['$','$'], ['\\(','\\)']],
+          displayMath: [['$$','$$'], ['\\[','\\]']]
+        }
+      });
+    </script>
+    <script type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+
+    <!-- Chosen Palette: Academic Blue & Neutrals -->
+    <!-- Application Structure Plan: Se ha diseñado una estructura de presentación de diapositivas secuencial para guiar al usuario a través de los conceptos de Regresión Lineal de manera lógica y progresiva. Este formato es ideal para contenido educativo, ya que construye el conocimiento paso a paso. El flujo comienza con conceptos teóricos (qué es, notación), avanza a la visualización estática, introduce la interactividad para la exploración (ajuste manual de parámetros), y culmina en la cuantificación del error (función de coste interactiva). Esta estructura convierte el aprendizaje pasivo en una experiencia activa, permitiendo al usuario "jugar" a ser el algoritmo para construir una intuición profunda, que es el objetivo principal del informe original. -->
+    <!-- Visualization & Content Choices: 
+        1. Info: Conceptos clave de Regresión Lineal. Goal: Informar. Method: Lista HTML estilizada. Interaction: Ninguna. Justification: Presentación clara y directa de los fundamentos teóricos.
+        2. Info: Datos de muestra. Goal: Organizar. Method: Tabla HTML. Interaction: Ninguna. Justification: Formato estándar y legible para datos tabulares.
+        3. Info: Relación entre variables. Goal: Relacionar/Visualizar. Method: Gráfico de dispersión estático (Chart.js/Canvas). Interaction: Ninguna. Justification: Establece la base visual y el objetivo (encontrar la línea) antes de introducir la complejidad interactiva.
+        4. Info: Efecto de los parámetros theta. Goal: Explorar/Relacionar. Method: Gráfico de dispersión interactivo con sliders (Chart.js/Canvas + HTML Sliders). Interaction: El usuario ajusta theta0 y theta1 para mover la línea. Justification: Es la forma más intuitiva de entender el rol de cada parámetro en la función hipótesis.
+        5. Info: Error del modelo. Goal: Cuantificar/Explorar. Method: Gráfico interactivo que muestra el error (líneas verticales) y calcula el MSE (Chart.js/Canvas + JS). Interaction: El usuario ajusta los parámetros y ve el impacto directo en el error visual y numérico. Justification: Conecta la intuición visual de un "buen ajuste" con una métrica matemática concreta (la función de coste).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #f0f2f5;
+        }
+        h1, h2, h3 {
+            font-family: 'Roboto Slab', serif;
+        }
+        .slide {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .slide.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 50vh;
+            max-height: 450px;
+        }
+        .quiz-option {
+            transition: background-color 0.3s;
+        }
+        .quiz-option.correct {
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+        }
+        .quiz-option.incorrect {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+        }
+        .quiz-option.selected {
+             background-color: #dbeafe;
+             border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
+
+    <main id="presentation-container" class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden transition-all duration-500" style="min-height: 650px;">
+        
+        <div id="slide-0" class="slide active p-8 md:p-12 justify-center items-center text-center h-[650px]">
+            <h1 class="text-5xl md:text-6xl font-bold text-indigo-900">Regresión Lineal</h1>
+            <p class="text-2xl text-slate-600 mt-4">Un Módulo Interactivo para su Funcionamiento Interno</p>
+            <div class="mt-24 text-lg text-slate-500">
+                <p><strong>Autor:</strong> Prof. Dudbil Olvasada Pabón Riaño</p>
+                <p><strong>Fecha:</strong> Agosto 2025</p>
+            </div>
+        </div>
+
+        <div id="slide-1" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-4">Introducción</h2>
+            <div class="text-lg text-slate-700 space-y-4 text-justify">
+                <p>La Regresión Lineal es uno de los algoritmos fundamentales en el campo del Machine Learning. A menudo se presenta como el punto de partida para quienes se inician en esta disciplina, y por una buena razón: es conceptualmente accesible, computacionalmente eficiente y su interpretación es directa.</p>
+                <p>Este módulo interactivo está diseñado para desmitificar el funcionamiento interno de la Regresión Lineal. No se limita a presentar las fórmulas, sino que busca construir una intuición profunda sobre cada uno de sus componentes. A través de visualizaciones interactivas, exploraremos cómo el algoritmo "aprende" de los datos para construir un modelo capaz de realizar predicciones.</p>
+            </div>
+        </div>
+
+        <div id="slide-2" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">El ADN de la Regresión Lineal</h2>
+            <ul class="space-y-4 text-slate-700">
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Aprendizaje Supervisado:</strong> Se entrena con un "conjunto de datos etiquetado", donde cada ejemplo de entrada viene acompañado de su resultado correcto o "etiqueta". El algoritmo aprende la relación entre entradas y salidas.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Aprendizaje Basado en Modelos:</strong> No memoriza los datos, sino que generaliza el conocimiento en una fórmula matemática compacta, la "función hipótesis", para hacer predicciones sobre datos nuevos.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Modelo Lineal:</strong> La función hipótesis es un modelo lineal. En un problema con una sola variable, se representa como una línea recta que busca ajustarse a la tendencia de los datos.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Mecanismo de Predicción:</strong> Las predicciones se realizan mediante una "suma ponderada" de las características de entrada, multiplicadas por "pesos" o "parámetros", más un término constante llamado "bias".</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Objetivo Principal:</strong> Se utiliza para tareas de "regresión", cuyo fin es predecir valores continuos (ej. precios, temperaturas), a diferencia de la clasificación que predice categorías.</li>
+            </ul>
+        </div>
+        
+        <div id="slide-3" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">Supuestos de la Regresión Lineal</h2>
+            <p class="text-slate-700 mb-4">Para que el modelo de regresión lineal sea válido y sus resultados fiables, se deben cumplir ciertos supuestos sobre los datos:</p>
+            <ul class="space-y-4 text-slate-700">
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Relación Lineal:</strong> Debe existir una relación lineal entre las variables independientes ($x$) y la variable dependiente ($y$). Esto se puede verificar visualmente con un gráfico de dispersión.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Independencia de los Errores:</strong> Los errores (residuos) deben ser independientes entre sí. Esto significa que el error de una observación no debe predecir el error de otra.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Homocedasticidad:</strong> La varianza de los errores debe ser constante para todos los niveles de las variables independientes. En otras palabras, la dispersión de los residuos debe ser uniforme a lo largo de la línea de regresión.</li>
+                <li class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500"><strong>Normalidad de los Errores:</strong> Los errores del modelo deben seguir una distribución normal. Esto es especialmente importante para la inferencia estadística (intervalos de confianza y pruebas de hipótesis).</li>
+            </ul>
+        </div>
+
+        <div id="slide-4" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">La Anatomía de un Conjunto de Datos</h2>
+            <p class="mb-6 text-slate-700">Para entender el algoritmo, es crucial conocer la notación de sus datos. Usaremos un ejemplo para predecir el coste de un incidente de seguridad basado en el número de sistemas afectados.</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-indigo-800 text-white">
+                        <tr>
+                            <th class="p-3 rounded-tl-lg">Incidente ($i$)</th>
+                            <th class="p-3">Sistemas afectados ($x_1$)</th>
+                            <th class="p-3 rounded-tr-lg">Coste en euros ($y$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-slate-200"><td class="p-3">$i_1$</td><td class="p-3">1000</td><td class="p-3">10000</td></tr>
+                        <tr class="bg-slate-50 border-b border-slate-200"><td class="p-3">$i_2$</td><td class="p-3">1500</td><td class="p-3">20000</td></tr>
+                        <tr class="border-b border-slate-200"><td class="p-3">$i_3$</td><td class="p-3">500</td><td class="p-3">5500</td></tr>
+                        <tr class="bg-slate-50 border-b border-slate-200"><td class="p-3">...</td><td class="p-3">...</td><td class="p-3">...</td></tr>
+                        <tr><td class="p-3">$i_m$</td><td class="p-3">200</td><td class="p-3">2500</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <ul class="mt-6 space-y-3 text-slate-700">
+                <li><strong class="text-indigo-700">Features ($x$):</strong> Variables de entrada para la predicción. Aquí, $x_1$ es "Sistemas afectados".</li>
+                <li><strong class="text-indigo-700">Target ($y$):</strong> Variable que se desea predecir. Aquí, $y$ es el "Coste".</li>
+                <li><strong class="text-indigo-700">Ejemplo de Entrenamiento ($(x^{(i)}, y^{(i)})$):</strong> Una fila del dataset, una observación completa. El superíndice $(i)$ denota el i-ésimo ejemplo.</li>
+                <li><strong class="text-indigo-700">$m$:</strong> Número total de ejemplos de entrenamiento (filas).</li>
+            </ul>
+        </div>
+
+        <div id="slide-5" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-2">Visualizando los Datos</h2>
+            <p class="text-slate-600 mb-6 text-center">Un gráfico de dispersión revela la tendencia lineal de los datos. El objetivo es encontrar la línea (modelo) que mejor se ajuste.</p>
+            <div class="chart-container">
+                <canvas id="scatterPlotStatic"></canvas>
+            </div>
+        </div>
+
+        <div id="slide-6" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-4">La Función Hipótesis</h2>
+            <p class="text-slate-700 mb-4">La línea se describe matemáticamente con la <strong>función hipótesis</strong>, $h_{\theta}(x)$. Para una variable, es la ecuación de una recta:</p>
+            <div class="bg-indigo-50 p-4 rounded-lg text-center my-4">
+                <p class="text-2xl text-indigo-800">$$h_{\theta}(x) = \theta_0 + \theta_1x_1$$</p>
+            </div>
+            <ul class="space-y-3 text-slate-700">
+                <li><span class="font-bold text-indigo-700">$\theta_0$ (theta cero):</span> Es el <strong>intercepto</strong> o bias. Controla el desplazamiento vertical de la línea.</li>
+                <li><span class="font-bold text-indigo-700">$\theta_1$ (theta uno):</span> Es la <strong>pendiente</strong> o peso. Determina la inclinación de la línea y la importancia de la característica $x_1$.</li>
+            </ul>
+            <p class="mt-4 text-slate-700">El objetivo del entrenamiento es encontrar los valores óptimos de $\theta_0$ y $\theta_1$.</p>
+        </div>
+
+        <div id="slide-7" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-2">Exploración Interactiva: ¡Tú eres el Algoritmo!</h2>
+            <p class="text-slate-600 mb-4 text-center">Usa los controles para manipular los parámetros y encontrar la línea que mejor se ajuste a los datos.</p>
+            <div class="chart-container">
+                <canvas id="interactivePlot"></canvas>
+            </div>
+            <div class="max-w-xl mx-auto mt-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+                    <label for="theta0_slider" class="font-bold text-indigo-800">$\theta_0$ (Intercepto)</label>
+                    <input type="range" id="theta0_slider" min="0" max="10000" value="2500" step="100" class="w-full col-span-1 sm:col-span-2 accent-indigo-600">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+                    <label for="theta1_slider" class="font-bold text-indigo-800">$\theta_1$ (Pendiente)</label>
+                    <input type="range" id="theta1_slider" min="0" max="20" value="10" step="0.1" class="w-full col-span-1 sm:col-span-2 accent-indigo-600">
+                </div>
+            </div>
+        </div>
+
+        <div id="slide-8" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-4">La Función de Coste (Error Cuadrático Medio)</h2>
+            <p class="text-slate-700 mb-4">Para que un ordenador encuentre la "mejor" línea, necesitamos medir el error. La <strong>función de coste</strong>, $J(\theta)$, cuantifica qué tan equivocadas están las predicciones del modelo. Para la regresión lineal, la función de coste más común es el <strong>Error Cuadrático Medio (MSE)</strong>.</p>
+            <p class="text-slate-700 mb-4">El MSE calcula el promedio de las diferencias al cuadrado entre el valor real ($y^{(i)}$) y el valor predicho ($h_\theta(x^{(i)})$) para todos los $m$ ejemplos de entrenamiento.</p>
+            <div class="bg-indigo-50 p-4 rounded-lg text-center my-4">
+                <p class="text-2xl text-indigo-800">$$J(\theta_0, \theta_1) = \frac{1}{2m} \sum_{i=1}^{m} (h_\theta(x^{(i)}) - y^{(i)})^2$$</p>
+            </div>
+            <ul class="space-y-3 text-slate-700">
+                <li>Elevamos el error al cuadrado para penalizar más los errores grandes y asegurar que el resultado sea siempre positivo.</li>
+                <li>Dividimos por $m$ para obtener el error promedio. El factor $\frac{1}{2}$ es una convención matemática que simplifica el cálculo del gradiente más adelante.</li>
+                <li><strong>El objetivo del entrenamiento es encontrar los valores de $\theta_0$ y $\theta_1$ que minimizan $J(\theta_0, \theta_1)$.</strong></li>
+            </ul>
+        </div>
+
+        <div id="slide-9" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-2">Cuantificando el Error: Interactivo</h2>
+            <p class="text-slate-600 mb-4 text-center">La <strong>función de coste $J(\theta)$</strong> mide numéricamente qué tan bueno es un modelo. Las líneas rojas muestran el error para cada punto. Intenta minimizar el "Coste Total".</p>
+            <div class="chart-container">
+                <canvas id="costPlot"></canvas>
+            </div>
+            <div class="max-w-xl mx-auto mt-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+                    <label for="theta0_cost_slider" class="font-bold text-indigo-800">$\theta_0$ (Intercepto)</label>
+                    <input type="range" id="theta0_cost_slider" min="0" max="10000" value="2500" step="100" class="w-full col-span-1 sm:col-span-2 accent-indigo-600">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+                    <label for="theta1_cost_slider" class="font-bold text-indigo-800">$\theta_1$ (Pendiente)</label>
+                    <input type="range" id="theta1_cost_slider" min="0" max="20" value="5" step="0.1" class="w-full col-span-1 sm:col-span-2 accent-indigo-600">
+                </div>
+                <div id="costDisplay" class="mt-4 text-center font-bold text-xl p-3 rounded-lg bg-red-100 text-red-800 border border-red-200">Coste Total (MSE): Calculando...</div>
+            </div>
+        </div>
+        
+        <div id="slide-10" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6">Resumen y Próximos Pasos</h2>
+            <p class="text-slate-700 mb-6">Hemos desglosado el proceso de construcción de un modelo de Regresión Lineal:</p>
+            <ol class="space-y-3 list-decimal list-inside text-slate-700">
+                <li>Se comienza con <strong>datos</strong> etiquetados ($(x, y)$).</li>
+                <li>Se definen los <strong>supuestos</strong> que deben cumplir los datos.</li>
+                <li>Se define un <strong>modelo</strong> (función hipótesis) con parámetros $\theta$ a aprender.</li>
+                <li>Se usa una <strong>función de coste</strong> para medir el error del modelo.</li>
+                <li>El <strong>entrenamiento</strong> consiste en encontrar los parámetros $\theta$ que minimizan ese coste.</li>
+            </ol>
+            <div class="mt-8 p-6 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
+                <h3 class="text-xl font-bold text-amber-800">La Pregunta Pendiente: Optimización</h3>
+                <p class="mt-2 text-amber-900">¿Cómo puede un ordenador encontrar <strong>automáticamente</strong> los valores de $\theta_0$ y $\theta_1$ que minimizan la función de coste? La respuesta está en algoritmos de <strong>optimización</strong>. El más común es el <strong>Descenso del Gradiente</strong>, que funciona como una persona bajando una montaña en la niebla: da pequeños pasos en la dirección de la pendiente más pronunciada hasta llegar al fondo (el mínimo coste).</p>
+            </div>
+        </div>
+        
+        <div id="slide-11" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">Quiz Interactivo</h2>
+            <div id="quiz-container" class="space-y-8">
+                <!-- Quiz content will be injected here by JavaScript -->
+            </div>
+            <div id="quiz-results" class="mt-8 text-center hidden">
+                <h3 class="text-2xl font-bold">Resultados del Quiz</h3>
+                <p id="quiz-score" class="text-xl mt-2"></p>
+                <button id="quiz-retry-btn" class="mt-4 px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700">Intentar de Nuevo</button>
+            </div>
+        </div>
+
+        <div id="slide-12" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">Glosario de Términos</h2>
+            <dl class="space-y-6">
+                <div>
+                    <dt class="font-bold text-lg text-indigo-800">Aprendizaje Supervisado</dt>
+                    <dd class="text-slate-700 ml-4">Paradigma de Machine Learning donde un algoritmo aprende de un conjunto de datos que contiene "etiquetas" o resultados correctos para cada entrada.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-lg text-indigo-800">Función Hipótesis ($h_{\theta}(x)$)</dt>
+                    <dd class="text-slate-700 ml-4">La función matemática que representa el modelo. Toma una entrada $x$ y produce una predicción. En regresión lineal, es la ecuación de una recta.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-lg text-indigo-800">Parámetros ($\theta$)</dt>
+                    <dd class="text-slate-700 ml-4">Los coeficientes o pesos internos del modelo que se ajustan durante el entrenamiento. En regresión lineal simple, son el intercepto ($\theta_0$) y la pendiente ($\theta_1$).</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-lg text-indigo-800">Función de Coste ($J(\theta)$)</dt>
+                    <dd class="text-slate-700 ml-4">Una función que mide el error o "coste" del modelo, cuantificando la diferencia entre los valores predichos y los valores reales en el conjunto de datos.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-lg text-indigo-800">Descenso del Gradiente</dt>
+                    <dd class="text-slate-700 ml-4">Un algoritmo de optimización utilizado para minimizar la función de coste, ajustando iterativamente los parámetros del modelo en la dirección que reduce el error más rápidamente.</dd>
+                </div>
+                 <div>
+                    <dt class="font-bold text-lg text-indigo-800">Homocedasticidad</dt>
+                    <dd class="text-slate-700 ml-4">Supuesto que indica que la varianza de los errores de un modelo de regresión es constante a lo largo de todos los valores de las variables independientes.</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div id="slide-13" class="slide p-8 md:p-12">
+            <h2 class="text-3xl font-bold text-indigo-900 mb-6 border-b-2 border-indigo-200 pb-2">Bibliografía</h2>
+            <p class="text-slate-700 mb-4">El contenido de este módulo se basa en conceptos fundamentales de Machine Learning, ampliamente cubiertos en la literatura y cursos estándar de la industria. Las fuentes de inspiración principales incluyen:</p>
+            <ul class="space-y-4 list-disc list-inside text-slate-700">
+                <li><strong>Google. "Curso intensivo de aprendizaje automático: Regresión lineal."</strong> Google Developers.</li>
+                <li><strong>GeeksforGeeks. "ML | Linear Regression."</strong> GeeksforGeeks.</li>
+                <li><strong>MLU-Explain. "Linear Regression."</strong></li>
+                <li><strong>Sharma, Aniruddha. "Everything You Need to Know About Linear Regression."</strong> Analytics Vidhya, 2021.</li>
+                <li><strong>Ng, Andrew. "Machine Learning."</strong> Coursera, Stanford University.</li>
+                <li><strong>Géron, Aurélien. "Hands-On Machine Learning with Scikit-Learn, Keras & TensorFlow."</strong> O'Reilly Media, 2019.</li>
+            </ul>
+        </div>
+
+    </main>
+
+    <div id="navigation-controls" class="w-full max-w-md mx-auto mt-6">
+        <div class="flex items-center justify-between bg-white/50 backdrop-blur-sm p-2 rounded-full shadow-lg">
+            <button id="prevBtn" class="w-12 h-12 rounded-full bg-indigo-600 text-white text-2xl font-bold flex items-center justify-center hover:bg-indigo-700 disabled:bg-slate-300 transition-transform duration-200 active:scale-90">&lt;</button>
+            <div class="flex-grow h-2 bg-slate-300 rounded-full mx-4 overflow-hidden">
+                <div id="progressBar" class="h-2 bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+            <button id="nextBtn" class="w-12 h-12 rounded-full bg-indigo-600 text-white text-2xl font-bold flex items-center justify-center hover:bg-indigo-700 disabled:bg-slate-300 transition-transform duration-200 active:scale-90">&gt;</button>
+        </div>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+        let currentSlide = 0;
+
+        const rawData = [
+            { x: 500, y: 5500 }, { x: 1000, y: 10000 }, { x: 1500, y: 20000 },
+            { x: 200, y: 2500 }, { x: 800, y: 12000 }, { x: 1800, y: 22000 },
+            { x: 2000, y: 25000 }, { x: 300, y: 4000 }, { x: 1200, y: 15000 }
+        ];
+
+        let staticChart, interactiveChart, costChart;
+        
+        const chartOptionsBase = {
+            scales: {
+                x: {
+                    type: 'linear', position: 'bottom',
+                    title: { display: true, text: 'Número de Sistemas Afectados (x)', font: { size: 14 } },
+                    min: 0, max: 2200
+                },
+                y: {
+                    title: { display: true, text: 'Coste en Euros (y)', font: { size: 14 } },
+                    min: 0, max: 28000
+                }
+            },
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false,
+            animation: { duration: 500 }
+        };
+        
+        function updateProgressBar() {
+            const progressPercent = currentSlide > 0 ? ((currentSlide - 1) / (slides.length - 2)) * 100 : 0;
+            progressBar.style.width = `${progressPercent}%`;
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            
+            prevBtn.disabled = index <= 1;
+            nextBtn.disabled = index === slides.length - 1;
+            
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, slides[index]]);
+
+            if (index === 5 && !staticChart) initStaticChart();
+            if (index === 7 && !interactiveChart) initInteractiveChart();
+            if (index === 9 && !costChart) initCostChart();
+            if (index === 11) initQuiz();
+            
+            updateProgressBar();
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentSlide > 1) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        });
+
+        function initStaticChart() {
+            if (staticChart) return;
+            const ctx = document.getElementById('scatterPlotStatic').getContext('2d');
+            staticChart = new Chart(ctx, {
+                data: {
+                    datasets: [{
+                        type: 'scatter',
+                        label: 'Datos de Incidentes',
+                        data: rawData,
+                        backgroundColor: 'rgba(129, 140, 248, 0.8)',
+                        borderColor: 'rgba(67, 56, 202, 1)',
+                        borderWidth: 1,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }, {
+                        type: 'line',
+                        label: 'Modelo Ideal',
+                        data: [{x: 0, y: 2000}, {x: 2200, y: 26000}],
+                        borderColor: 'rgba(29, 78, 216, 0.8)',
+                        borderWidth: 3,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: chartOptionsBase
+            });
+        }
+
+        function initInteractiveChart() {
+            if (interactiveChart) return;
+            const ctx = document.getElementById('interactivePlot').getContext('2d');
+            const theta0Slider = document.getElementById('theta0_slider');
+            const theta1Slider = document.getElementById('theta1_slider');
+            
+            interactiveChart = new Chart(ctx, {
+                data: {
+                    datasets: [{
+                        type: 'scatter',
+                        data: rawData,
+                        backgroundColor: 'rgba(129, 140, 248, 0.8)'
+                    }, {
+                        type: 'line',
+                        data: [],
+                        borderColor: 'rgba(29, 78, 216, 1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                    }]
+                },
+                options: chartOptionsBase
+            });
+
+            function updateLine() {
+                const theta0 = parseFloat(theta0Slider.value);
+                const theta1 = parseFloat(theta1Slider.value);
+                interactiveChart.data.datasets[1].data = [
+                    { x: 0, y: theta0 },
+                    { x: 2200, y: theta0 + theta1 * 2200 }
+                ];
+                interactiveChart.update('none');
+            }
+            theta0Slider.addEventListener('input', updateLine);
+            theta1Slider.addEventListener('input', updateLine);
+            updateLine();
+        }
+        
+        const errorLinesPlugin = {
+            id: 'errorLines',
+            afterDraw: (chart) => {
+                const { ctx, data, scales: { x, y } } = chart;
+                const lineDataset = data.datasets[1].data;
+                if (!lineDataset || lineDataset.length < 2) return;
+
+                const theta0 = lineDataset[0].y;
+                const theta1 = (lineDataset[1].y - lineDataset[0].y) / (lineDataset[1].x - lineDataset[0].x);
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.7)';
+                ctx.lineWidth = 2;
+
+                data.datasets[0].data.forEach(point => {
+                    const predY = theta0 + theta1 * point.x;
+                    const pixelX = x.getPixelForValue(point.x);
+                    const pixelY_actual = y.getPixelForValue(point.y);
+                    const pixelY_pred = y.getPixelForValue(predY);
+                    ctx.beginPath();
+                    ctx.moveTo(pixelX, pixelY_actual);
+                    ctx.lineTo(pixelX, pixelY_pred);
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
+        };
+        
+        function initCostChart() {
+            if (costChart) return;
+            const ctx = document.getElementById('costPlot').getContext('2d');
+            const theta0Slider = document.getElementById('theta0_cost_slider');
+            const theta1Slider = document.getElementById('theta1_cost_slider');
+            const costDisplay = document.getElementById('costDisplay');
+            
+            costChart = new Chart(ctx, {
+                data: {
+                    datasets: [{
+                        type: 'scatter',
+                        data: rawData,
+                        backgroundColor: 'rgba(129, 140, 248, 0.8)'
+                    }, {
+                        type: 'line',
+                        data: [],
+                        borderColor: 'rgba(29, 78, 216, 1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                    }]
+                },
+                options: chartOptionsBase,
+                plugins: [errorLinesPlugin]
+            });
+
+            function updateCost() {
+                const theta0 = parseFloat(theta0Slider.value);
+                const theta1 = parseFloat(theta1Slider.value);
+                costChart.data.datasets[1].data = [
+                    { x: 0, y: theta0 },
+                    { x: 2200, y: theta0 + theta1 * 2200 }
+                ];
+                
+                let totalError = 0;
+                rawData.forEach(point => {
+                    const prediction = theta0 + theta1 * point.x;
+                    const error = prediction - point.y;
+                    totalError += error * error;
+                });
+                const mse = totalError / rawData.length;
+                costDisplay.textContent = `Coste Total (MSE): ${Math.round(mse).toLocaleString('es-ES')}`;
+                
+                costChart.update('none');
+            }
+            theta0Slider.addEventListener('input', updateCost);
+            theta1Slider.addEventListener('input', updateCost);
+            updateCost();
+        }
+
+        const quizData = [
+            {
+                question: "¿Cuál es el objetivo principal de la Regresión Lineal?",
+                options: ["Clasificar datos en categorías", "Predecir un valor continuo", "Agrupar datos similares", "Reducir la dimensionalidad de los datos"],
+                answer: "Predecir un valor continuo"
+            },
+            {
+                question: "En la ecuación $h_\\theta(x) = \\theta_0 + \\theta_1x_1$, ¿qué representa el parámetro $\\theta_1$?",
+                options: ["El punto de partida del modelo", "El error promedio del modelo", "La pendiente de la línea de regresión", "El número de ejemplos de entrenamiento"],
+                answer: "La pendiente de la línea de regresión"
+            },
+            {
+                question: "¿Para qué se utiliza la función de coste $J(\\theta)$?",
+                options: ["Para visualizar los datos", "Para seleccionar las características de entrada", "Para medir el error del modelo y guiar el entrenamiento", "Para normalizar los datos antes del entrenamiento"],
+                answer: "Para medir el error del modelo y guiar el entrenamiento"
+            },
+            {
+                question: "La Regresión Lineal es un algoritmo de...",
+                options: ["Aprendizaje Supervisado", "Aprendizaje No Supervisado", "Aprendizaje por Refuerzo", "Aprendizaje Profundo"],
+                answer: "Aprendizaje Supervisado"
+            }
+        ];
+        let score = 0;
+        let currentQuestionIndex = 0;
+
+        function initQuiz() {
+            score = 0;
+            currentQuestionIndex = 0;
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.innerHTML = '';
+            document.getElementById('quiz-results').classList.add('hidden');
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.innerHTML = '';
+            const q = quizData[currentQuestionIndex];
+
+            const questionEl = document.createElement('div');
+            questionEl.innerHTML = `<h3 class="text-xl font-semibold text-slate-800">${currentQuestionIndex + 1}. ${q.question}</h3>`;
+            
+            const optionsEl = document.createElement('div');
+            optionsEl.className = 'space-y-3 mt-4';
+
+            q.options.forEach(optionText => {
+                const optionEl = document.createElement('div');
+                optionEl.textContent = optionText;
+                optionEl.className = 'quiz-option p-4 border-2 border-slate-300 rounded-lg cursor-pointer hover:bg-indigo-100';
+                optionEl.addEventListener('click', () => selectAnswer(optionEl, optionText, q.answer));
+                optionsEl.appendChild(optionEl);
+            });
+
+            quizContainer.appendChild(questionEl);
+            quizContainer.appendChild(optionsEl);
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, quizContainer]);
+        }
+
+        function selectAnswer(optionEl, selectedAnswer, correctAnswer) {
+            const parent = optionEl.parentElement;
+            const options = parent.querySelectorAll('.quiz-option');
+            
+            // Disable further clicks
+            options.forEach(opt => {
+                opt.style.pointerEvents = 'none';
+                if(opt.textContent === correctAnswer) {
+                    opt.classList.add('correct');
+                }
+            });
+
+            if (selectedAnswer === correctAnswer) {
+                score++;
+                optionEl.classList.add('correct');
+            } else {
+                optionEl.classList.add('incorrect');
+            }
+            
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < quizData.length) {
+                    displayQuestion();
+                } else {
+                    showResults();
+                }
+            }, 1500);
+        }
+        
+        function showResults() {
+             const quizContainer = document.getElementById('quiz-container');
+             quizContainer.innerHTML = '';
+             const resultsEl = document.getElementById('quiz-results');
+             resultsEl.classList.remove('hidden');
+             const scoreEl = document.getElementById('quiz-score');
+             scoreEl.textContent = `Tu puntuación: ${score} de ${quizData.length}`;
+             document.getElementById('quiz-retry-btn').addEventListener('click', initQuiz);
+        }
+
+        showSlide(currentSlide);
+    </script>
+</body>
+</html>
